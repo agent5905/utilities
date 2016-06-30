@@ -8,14 +8,14 @@
 
 import UIKit
 
+enum UIComboBoxStyle: Int {
+    case DropDownComboBox = 0
+    case SimpleComboBox = 1
+    case DropDownList = 2
+}
+
 @IBDesignable class UIComboBox: UITextField {
     
-    enum UIComboBoxStyle: Int {
-        case DropDownComboBox = 0
-        case SimpleComboBox = 1
-        case DropDownList = 2
-    }
-
     @IBInspectable var dropDownHeight:CGFloat = 100.0
     @IBInspectable var displayArrow:Bool = true {
         didSet{
@@ -101,3 +101,72 @@ import UIKit
     */
 
 }
+
+
+
+class ComboBoxTableViewController: UITableViewController {
+    
+    
+    var comboBoxStyle:UIComboBoxStyle = UIComboBoxStyle.DropDownList
+    
+    
+    
+    //Events
+    var itemSelected: ((selectedIndex:Int, selectedText: String) -> Void)?
+    
+    
+    var items: [String] = [] {
+        didSet{
+            
+        }
+    }
+    
+    required init?(coder aDecoder:NSCoder){
+        super.init(coder: aDecoder)
+    }
+    
+    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: NSBundle?) {
+        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
+        
+        tableView.registerClass(UITableViewCell.classForCoder(), forCellReuseIdentifier: "ComboBoxTableCell")
+    }
+    
+    override init(style: UITableViewStyle) {
+        super.init(style: style)
+    }
+
+    
+    override func viewDidAppear(animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        self.tableView.reloadData()
+    }
+    
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        tableView.registerClass(UITableViewCell.classForCoder(), forCellReuseIdentifier: "ComboBoxTableCell")
+        tableView.delegate = self
+        tableView.dataSource = self
+    }
+    
+    
+    override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
+        return 1
+    }
+    
+    override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCellWithIdentifier("ComboBoxCell") as UITableViewCell!
+        
+        cell.textLabel?.text = self.items[indexPath.row]
+        
+        return cell
+    }
+    
+    override func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
+        itemSelected?(selectedIndex: indexPath.row, selectedText: items[indexPath.row])
+    }
+    
+    
+}
+

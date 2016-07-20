@@ -16,6 +16,7 @@ enum UIComboBoxStyle: Int {
 
 @IBDesignable class UIComboBox: UITextField {
     
+    // *** Public IB Properties ***
     @IBInspectable var dropDownHeight:CGFloat = 100.0
     @IBInspectable var displayArrow:Bool = true {
         didSet{
@@ -23,8 +24,34 @@ enum UIComboBoxStyle: Int {
         }
     }
     
+
+    // *** Private Properties ***
+    
+    // *** Public Properties ***
+    public var sorted:Bool = false
+    public var displayButton:Bool = true
+    
+    
+    // *** Private Variables ***
     let arrowView = UIView()
-    let comboBoxHeight:CGFloat = 30.0
+    
+    
+    // *** Public Variables ***
+    public var items:[String] = []
+    public var listIndex:Int = -1
+    public var listCount = 0
+    public var selText:String = ""
+    public var notificationCenter = NSNotificationCenter.defaultCenter()
+    
+    
+    // *** Public Events ***
+    public let ComboBoxTextChangedNotification = "ComboBoxTextChangedNotification"
+    public let ComboBoxSelectedIndexChangedNotification = "ComboBoxSelectedIndexChangedNotification"
+    public let ComboBoxGotFocusNotification = "ComboBoxGotFocusNotification"
+    public let ComboBoxLostFocusNotification = "ComboBoxLostFocusNotification"
+    
+    
+    
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -49,7 +76,7 @@ enum UIComboBoxStyle: Int {
     
     func drawArrow(){
         
-        arrowView.frame = CGRectMake(self.bounds.width - comboBoxHeight, 0.0 , comboBoxHeight, comboBoxHeight)
+        arrowView.frame = CGRectMake(self.frame.width - self.frame.height, 0.0 , self.frame.height, self.frame.height)
         arrowView.backgroundColor = UIColor.lightGrayColor()
         //arrowView.layer.cornerRadius = 5.0
     
@@ -84,12 +111,34 @@ enum UIComboBoxStyle: Int {
         self.addSubview(arrowView)
     }
     
+    // *** Private Methods ***
+    private func buttonTapped() {
+        
+    }
     
-    //Methods
-    var TextChanged: ((sender: UIComboBox) -> ())?
-    var SelectedIndexChanged: ((sender: UIComboBox) -> ())?
-    var GotFocus: ((sender:UIComboBox) -> ())?
-    var LostFocus: ((sender:UIComboBox) -> ())?
+    private func showList() {
+        
+    }
+    
+    // *** Public Methods ***
+    internal func add(item:String) {
+        items.append(item)
+    }
+    
+    internal func remove(index:Int) {
+        items.removeAtIndex(index)
+    }
+    
+    internal func clear() {
+        items.removeAll()
+    }
+    
+    
+    // *** Events ***
+    
+    private func comboBoxTextChanged() {
+        
+    }
     
     
     /*

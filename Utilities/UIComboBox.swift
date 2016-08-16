@@ -14,7 +14,7 @@ enum UIComboBoxStyle: Int {
     case DropDownList = 2
 }
 
-@IBDesignable class UIComboBox: UITextField {
+@IBDesignable class UIComboBox: UITextField, UITableViewDataSource, UITableViewDelegate {
     
     // *** Public IB Properties ***
     @IBInspectable var dropDownHeight:CGFloat = 100.0
@@ -26,6 +26,12 @@ enum UIComboBoxStyle: Int {
     
 
     // *** Private Properties ***
+    private let cornerRadius:CGFloat = 5.0
+    private var listVisible:Bool = false
+    private let borderWith:CGFloat = 0.5
+    private var borderColor:CGColor = UIColor(red: 0.78, green: 0.78, blue: 0.78, alpha: 1.0).CGColor//UIColor.lightGrayColor().CGColor
+        //UIColor(red: 0.78, green: 0.78, blue: 0.78, alpha: 1.0).CGColor
+    
     
     // *** Public Properties ***
     public var sorted:Bool = false
@@ -34,7 +40,8 @@ enum UIComboBoxStyle: Int {
     
     // *** Private Variables ***
     let arrowView = UIView()
-    
+    let comboBoxListView = UITableView()
+    private var tapGesture :UITapGestureRecognizer!
     
     // *** Public Variables ***
     public var items:[String] = []
@@ -70,7 +77,9 @@ enum UIComboBoxStyle: Int {
     
     func setup(){
         super.clipsToBounds = false
+        tapGesture = UITapGestureRecognizer(target: self, action: "comboBoxButtonTapped")
         drawArrow()
+        drawList()
         
     }
     
@@ -109,15 +118,58 @@ enum UIComboBoxStyle: Int {
         
         
         self.addSubview(arrowView)
+        
+        
+        arrowView.addGestureRecognizer(tapGesture)
+    }
+    
+    func drawList(){
+        comboBoxListView.frame = CGRectMake(0.0, self.frame.height + 3.0, self.frame.width, 100.0)
+        
+        comboBoxListView.layer.cornerRadius = self.cornerRadius
+        comboBoxListView.layer.borderWidth = self.borderWith
+        comboBoxListView.layer.borderColor = self.borderColor
+        comboBoxListView.hidden = !listVisible
+        
+        comboBoxListView.registerClass(UITableViewCell.self, forCellReuseIdentifier: "ComboBoxTableCell")
+        comboBoxListView.delegate = self
+        comboBoxListView.dataSource = self
+        
+        self.addSubview(comboBoxListView)
+        
+        
+        
+        
     }
     
     // *** Private Methods ***
-    private func buttonTapped() {
-        
+    internal func comboBoxButtonTapped() {
+        if !listVisible {
+            listVisible = true
+            showList()
+            
+        }else{
+            listVisible = false
+            hideList()
+        }
     }
     
     private func showList() {
+        print("showList")
         
+        UIView.animateWithDuration(0.5, animations: {
+            self.comboBoxListView.hidden = !self.listVisible
+            self.comboBoxListView.alpha = 1.0
+        })
+    }
+    
+    private func hideList() {
+        print("hideList")
+        UIView.animateWithDuration(0.5, animations: {
+            self.comboBoxListView.alpha = 0.0
+        }, completion: { (value: Bool) in
+             self.comboBoxListView.hidden = !self.listVisible
+        })
     }
     
     // *** Public Methods ***
@@ -136,11 +188,42 @@ enum UIComboBoxStyle: Int {
     
     // *** Events ***
     
-    private func comboBoxTextChanged() {
-        
+    private func comboBoxTextChanged(selectedIndex:Int, selectedText: String) -> Void {
+        self.listIndex = selectedIndex
+        self.text = selectedText
     }
     
     
+    func numberOfSectionsInTableView(tableView: UITableView) -> Int {
+        return 1
+    }
+    
+    func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return self.items.count
+    }
+    
+    func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
+        var cell = tableView.dequeueReusableCellWithIdentifier("ComboBoxCell") as UITableViewCell!
+        
+        if cell == nil {
+            tableView.registerClass(UITableViewCell.self, forCellReuseIdentifier: "ComboBoxCell")
+            
+            cell = UITableViewCell(style: UITableViewCellStyle.Default, reuseIdentifier: "ComboBoxCell")
+        }
+        
+        print(items.count)
+        print(self.items[indexPath.row])
+        cell.textLabel?.text = self.items[indexPath.row]
+        cell.textLabel?.font = self.font
+        
+        return cell
+    }
+    
+    func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
+        
+    }
+    
+
     /*
     // Only override drawRect: if you perform custom drawing.
     // An empty implementation adversely affects performance during animation.
@@ -200,21 +283,7 @@ class ComboBoxTableViewController: UITableViewController {
     }
     
     
-    override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
-        return 1
-    }
     
-    override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCellWithIdentifier("ComboBoxCell") as UITableViewCell!
-        
-        cell.textLabel?.text = self.items[indexPath.row]
-        
-        return cell
-    }
-    
-    override func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
-        itemSelected?(selectedIndex: indexPath.row, selectedText: items[indexPath.row])
-    }
     
     
 }

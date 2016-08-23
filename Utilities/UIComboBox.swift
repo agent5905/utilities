@@ -46,7 +46,6 @@ enum UIComboBoxStyle: Int {
     // *** Public Variables ***
     public var items:[String] = [] {
         didSet{
-            print("set items")
             reloadItems(items)
         }
     }
@@ -57,9 +56,9 @@ enum UIComboBoxStyle: Int {
     
     
     // *** Public Events ***
-    public let ComboBoxTextChangedNotification = "ComboBoxTextChangedNotification"
-    public let ComboBoxSelectedIndexChangedNotification = "ComboBoxSelectedIndexChangedNotification"
-    public let ComboBoxGotFocusNotification = "ComboBoxGotFocusNotification"
+    internal let ComboBoxTextChangedNotification = "ComboBoxTextChangedNotification"
+    internal let ComboBoxSelectedIndexChangedNotification = "ComboBoxSelectedIndexChangedNotification"
+    internal let ComboBoxGotFocusNotification = "ComboBoxGotFocusNotification"
     internal let ComboBoxLostFocusNotification = "ComboBoxLostFocusNotification"
     
     
@@ -81,9 +80,10 @@ enum UIComboBoxStyle: Int {
     
     
     func setup(){
-        super.clipsToBounds = false
+        self.clipsToBounds = false
         tapGesture = UITapGestureRecognizer(target: self, action: #selector(UIComboBox.comboBoxButtonTapped))
-        tapGesture.cancelsTouchesInView = false
+        tapGesture.cancelsTouchesInView = true
+        
         drawArrow()
         drawList()
         
@@ -95,7 +95,6 @@ enum UIComboBoxStyle: Int {
     }
     
 
-    
     
     func drawArrow(){
         
@@ -133,49 +132,37 @@ enum UIComboBoxStyle: Int {
         
         self.addSubview(arrowView)
         
-        
         arrowView.addGestureRecognizer(tapGesture)
     }
     
     func drawList(){
-        print("drawList")
-        print(items.count)
-        comboBoxListView = ComboBoxListController(items: items, font: self.font!)
+        comboBoxListView = ComboBoxListController(items: items, comboBox: self)
         comboBoxListView.tableView.frame = CGRectMake(0.0, self.frame.height + 3.0, self.frame.width, 100.0)
         
-        
+        comboBoxListView.tableView.alpha = 0.0
         comboBoxListView.tableView.hidden = !listVisible
         
-        /*comboBoxListView.allowsSelection = true
-        comboBoxListView.registerClass(UITableViewCell.self, forCellReuseIdentifier: "ComboBoxTableCell")
-        comboBoxListView.delegate = self
-        comboBoxListView.dataSource = self*/
-        
         self.addSubview(comboBoxListView.tableView)
-        
-        
-        
-        
+
     }
     
     // *** Private Methods ***
     internal func comboBoxButtonTapped() {
         if !listVisible {
-            listVisible = true
             showList()
-            
         }else{
-            listVisible = false
             hideList()
         }
     }
     
     private func showList() {
         print("showList")
-        self.comboBoxListView.tableView.hidden = !self.listVisible
+        self.comboBoxListView.tableView.hidden = false
 
         UIView.animateWithDuration(0.5, animations: {
             self.comboBoxListView.tableView.alpha = 1.0
+        }, completion: { (value: Bool) in
+            self.listVisible = true
         })
     }
     
@@ -184,9 +171,23 @@ enum UIComboBoxStyle: Int {
         UIView.animateWithDuration(0.5, animations: {
             self.comboBoxListView.tableView.alpha = 0.0
         }, completion: { (value: Bool) in
-             self.comboBoxListView.tableView.hidden = !self.listVisible
+            self.listVisible = false
+            self.comboBoxListView.tableView.hidden = true
         })
     }
+    
+    
+    //This allows a subeView that is outside the bounds of the parent view to respond to touch events. There is also
+    //another method that uses hitTest but this is the one that worked.
+    override func pointInside(point: CGPoint, withEvent event: UIEvent?) -> Bool {
+        if CGRectContainsPoint(comboBoxListView.tableView.frame, point) {
+            return true
+        }
+        
+        return super.pointInside(point, withEvent: event)
+    }
+    
+
     
     // *** Public Methods ***
     internal func add(item:String) {
@@ -208,7 +209,8 @@ enum UIComboBoxStyle: Int {
     
     // *** Events ***
     
-    private func comboBoxTextChanged(selectedIndex:Int, selectedText: String) -> Void {
+    internal func comboBoxTextChanged(selectedIndex:Int, selectedText: String) -> Void {
+        self.hideList()
         self.listIndex = selectedIndex
         self.text = selectedText
     }
@@ -231,16 +233,19 @@ enum UIComboBoxStyle: Int {
 class ComboBoxListController: UITableViewController {
     var items:[String] = []
     var font:UIFont!
-    
+    weak var owner:UIComboBox!
     
     private let cornerRadius:CGFloat = 5.0
     private let borderWith:CGFloat = 0.5
     private var borderColor:CGColor = UIColor(red: 0.78, green: 0.78, blue: 0.78, alpha: 1.0).CGColor
     
-    init(items:[String], font:UIFont) {
+    
+    
+    init(items:[String], comboBox:UIComboBox) {
         super.init(style: .Plain)
         self.items = items
-        print("slef.items: \(self.items)")
+        self.owner = comboBox
+        self.font = owner.font!
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -253,11 +258,17 @@ class ComboBoxListController: UITableViewController {
         tableView.registerClass(UITableViewCell.self, forCellReuseIdentifier: "ComboBoxCell")
         self.tableView.delegate = self
         self.tableView.dataSource = self
+        
         self.tableView.allowsSelection = true
+        //self.tableView.scrollEnabled = true
+        
+        //self.tableView.rowHeight = UITableViewAutomaticDimension
+        //self.tableView.estimatedRowHeight = 30.0
         
         self.tableView.layer.cornerRadius = self.cornerRadius
         self.tableView.layer.borderWidth = self.borderWith
         self.tableView.layer.borderColor = self.borderColor
+
     }
     
     
@@ -266,18 +277,12 @@ class ComboBoxListController: UITableViewController {
     }
     
     override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        print(self.items.count)
+
         return self.items.count
     }
     
     override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
-        var cell = tableView.dequeueReusableCellWithIdentifier("ComboBoxCell") as UITableViewCell!
-        
-        /*if cell == nil {
-            tableView.registerClass(UITableViewCell.self, forCellReuseIdentifier: "ComboBoxCell")
-            
-            cell = UITableViewCell(style: UITableViewCellStyle.Default, reuseIdentifier: "ComboBoxCell")
-        }*/
+        let cell = tableView.dequeueReusableCellWithIdentifier("ComboBoxCell") as UITableViewCell!
         
         cell.textLabel?.text = self.items[indexPath.row]
         cell.textLabel?.font = self.font
@@ -286,9 +291,7 @@ class ComboBoxListController: UITableViewController {
     }
     
     override func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
-        //comboBoxTextChanged(indexPath.row, selectedText: self.items[indexPath.row])
-        //self.hideList()
-        print("item selected")
+        owner.comboBoxTextChanged(indexPath.row, selectedText: self.items[indexPath.row])
     }
 
 }

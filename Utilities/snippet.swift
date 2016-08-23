@@ -28,12 +28,16 @@ import Foundation
  
  comboBoxListView.layer.addSublayer(borderLayer)
 
- 
- 
- 
- 
- 
- 
- 
- 
 */
+
+/*override func hitTest(point: CGPoint, withEvent event: UIEvent?) -> UIView? {
+ let translatedPoint = comboBoxListView.tableView.convertPoint(point, toView: self)
+ 
+ if CGRectContainsPoint(comboBoxListView.tableView.bounds, translatedPoint) {
+ print("table view pressed")
+ //return comboBoxListView.tableView.hitTest(translatedPoint, withEvent: event)
+ return comboBoxListView.tableView
+ }
+ 
+ return super.hitTest(point, withEvent: event)
+ }*/

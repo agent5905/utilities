@@ -17,6 +17,8 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        comboBox1.name = "CB1"
+        comboBox2.name = "CB2"
         comboBox1.items = ["Item 1","Item 2","Item 3"]
         comboBox2.items = ["Item 4","Item 5","Item 6"]
         

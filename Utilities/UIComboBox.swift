@@ -14,9 +14,11 @@ enum UIComboBoxStyle: Int {
     case DropDownList = 2
 }
 
-@IBDesignable class UIComboBox: UITextField {
+@IBDesignable class UIComboBox: UITextField, UIGestureRecognizerDelegate {
     
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     // *** Public IB Properties ***
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     @IBInspectable var dropDownHeight:CGFloat = 100.0
     @IBInspectable var displayArrow:Bool = true {
         didSet{
@@ -24,38 +26,45 @@ enum UIComboBoxStyle: Int {
         }
     }
     
-
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     // *** Private Properties ***
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     private let cornerRadius:CGFloat = 5.0
     private var listVisible:Bool = false
     private let borderWith:CGFloat = 0.5
     private var borderColor:CGColor = UIColor(red: 0.78, green: 0.78, blue: 0.78, alpha: 1.0).CGColor//UIColor.lightGrayColor().CGColor
         //UIColor(red: 0.78, green: 0.78, blue: 0.78, alpha: 1.0).CGColor
     
-    
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     // *** Public Properties ***
-    public var sorted:Bool = false
-    public var displayButton:Bool = true
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    internal var sorted:Bool = false
+    internal var displayButton:Bool = true
+    internal var name:String = ""
     
-    
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     // *** Private Variables ***
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     let arrowView = UIView()
     var comboBoxListView:ComboBoxListController!
     private var tapGesture :UITapGestureRecognizer!
     
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     // *** Public Variables ***
-    public var items:[String] = [] {
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    internal var items:[String] = [] {
         didSet{
             reloadItems(items)
         }
     }
-    public var listIndex:Int = -1
-    public var listCount = 0
-    public var selText:String = ""
-    public var notificationCenter = NSNotificationCenter.defaultCenter()
+    internal var listIndex:Int = -1
+    internal var listCount = 0
+    internal var selText:String = ""
+    internal var notificationCenter = NSNotificationCenter.defaultCenter()
     
-    
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     // *** Public Events ***
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     internal let ComboBoxTextChangedNotification = "ComboBoxTextChangedNotification"
     internal let ComboBoxSelectedIndexChangedNotification = "ComboBoxSelectedIndexChangedNotification"
     internal let ComboBoxGotFocusNotification = "ComboBoxGotFocusNotification"
@@ -83,6 +92,7 @@ enum UIComboBoxStyle: Int {
         self.clipsToBounds = false
         tapGesture = UITapGestureRecognizer(target: self, action: #selector(UIComboBox.comboBoxButtonTapped))
         tapGesture.cancelsTouchesInView = true
+        tapGesture.delegate = self
         
         drawArrow()
         drawList()
@@ -94,12 +104,13 @@ enum UIComboBoxStyle: Int {
         
     }
     
-
     
+    //Handles creating the arrow in the UITextField
     func drawArrow(){
         
         arrowView.frame = CGRectMake(self.frame.width - self.frame.height, 0.0 , self.frame.height, self.frame.height)
         arrowView.backgroundColor = UIColor.lightGrayColor()
+        arrowView.userInteractionEnabled = true
         //arrowView.layer.cornerRadius = 5.0
     
         
@@ -135,6 +146,7 @@ enum UIComboBoxStyle: Int {
         arrowView.addGestureRecognizer(tapGesture)
     }
     
+    //Creates the listView(tableView)
     func drawList(){
         comboBoxListView = ComboBoxListController(items: items, comboBox: self)
         comboBoxListView.tableView.frame = CGRectMake(0.0, self.frame.height + 3.0, self.frame.width, 100.0)
@@ -145,8 +157,11 @@ enum UIComboBoxStyle: Int {
         self.addSubview(comboBoxListView.tableView)
 
     }
-    
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     // *** Private Methods ***
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    
+    
     internal func comboBoxButtonTapped() {
         if !listVisible {
             showList()
@@ -155,6 +170,8 @@ enum UIComboBoxStyle: Int {
         }
     }
     
+    
+    //This handles displaying the list
     private func showList() {
         print("showList")
         self.comboBoxListView.tableView.hidden = false
@@ -166,6 +183,7 @@ enum UIComboBoxStyle: Int {
         })
     }
     
+    //This handles removing the list from view
     private func hideList() {
         print("hideList")
         UIView.animateWithDuration(0.5, animations: {
@@ -180,16 +198,58 @@ enum UIComboBoxStyle: Int {
     //This allows a subeView that is outside the bounds of the parent view to respond to touch events. There is also
     //another method that uses hitTest but this is the one that worked.
     override func pointInside(point: CGPoint, withEvent event: UIEvent?) -> Bool {
-        if CGRectContainsPoint(comboBoxListView.tableView.frame, point) {
+        
+        //By using a UITextfield you get some odd behavior that just doesn't flow right for a combobox.
+        //The code below helps the class understand how the UIComboBox should operate.
+        
+        //This line allows the listView(tableview) to handle touches even though it is outside the bounds to the
+        //parent view(UITextfield)
+        if CGRectContainsPoint(comboBoxListView.tableView.frame, point) && listVisible {
+            
             return true
+            
+        //This line handles when the arrow button is tapped so that it can present/hide the list. false is passed
+        //so that the pointInside can traverse the other UIComboBoxes and close the list if visible.
+        }else if CGRectContainsPoint(arrowView.frame, point){
+            
+            
+            if self.isFirstResponder() {
+                self.resignFirstResponder()
+            }
+            self.comboBoxButtonTapped()
+            return false
+        
+        //This handles when the actual UITextfield is touched. it will hide the list if visdible. false is passed
+        //so that the pointInside can traverse the other UIComboBoxes and close the list if visible.
+        }else if CGRectContainsPoint(self.bounds, point){
+            //Since you never pass true to handle the UITextfield tap the class needs to manually set it.
+            self.becomeFirstResponder()
+            
+            if listVisible {
+                self.hideList()
+            }
+
+            return false
+            
+        //This handles when taps occur outside the UIComboBox. When this occurs a check is made to close the list.
+        }else{
+            if self.isFirstResponder() {
+                self.resignFirstResponder()
+            }
+            
+            if listVisible {
+                self.hideList()
+            }
         }
         
         return super.pointInside(point, withEvent: event)
     }
     
 
-    
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     // *** Public Methods ***
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    
     internal func add(item:String) {
         items.append(item)
     }
@@ -206,9 +266,9 @@ enum UIComboBoxStyle: Int {
         comboBoxListView.items = items
     }
     
-    
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     // *** Events ***
-    
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     internal func comboBoxTextChanged(selectedIndex:Int, selectedText: String) -> Void {
         self.hideList()
         self.listIndex = selectedIndex
@@ -260,10 +320,6 @@ class ComboBoxListController: UITableViewController {
         self.tableView.dataSource = self
         
         self.tableView.allowsSelection = true
-        //self.tableView.scrollEnabled = true
-        
-        //self.tableView.rowHeight = UITableViewAutomaticDimension
-        //self.tableView.estimatedRowHeight = 30.0
         
         self.tableView.layer.cornerRadius = self.cornerRadius
         self.tableView.layer.borderWidth = self.borderWith

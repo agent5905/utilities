@@ -41,3 +41,18 @@ import Foundation
  
  return super.hitTest(point, withEvent: event)
  }*/
+
+/*
+ override func touchesBegan(touches: Set<UITouch>, withEvent event: UIEvent?) {
+ print("touch")
+ 
+ let touch = event!.allTouches()!.first! as UITouch
+ 
+ if listVisible && (touch.view != self || touch.view != self.arrowView || touch.view != self.comboBoxListView.tableView) {
+ print("outside")
+ hideList()
+ }
+ 
+ super.touchesBegan(touches, withEvent: event)
+ }
+*/
